@@ -1,10 +1,10 @@
 # Author: Lachlan Whyborn
-# Last Modified: Wed 24 Jul 2024 04:22:58 PM AEST
+# Last Modified: Thu 25 Jul 2024 14:50:25
 
 import cablerun
 
 def run():
-    cablerun.run()
+    runner = cablerun.Runner()
 
 def dispatch():
     cablerun.dispatch()

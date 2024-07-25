@@ -1,8 +1,9 @@
 # Author: Lachlan Whyborn
-# Last Modified: Thu 25 Jul 2024 01:00:37 PM AEST
+# Last Modified: Thu 25 Jul 2024 14:48:13
 
 import os
-from config import apply_defaults
+from .config import apply_defaults, build_cable_stages
+import .templates as templates
 
 class Runner(object):
 
@@ -17,6 +18,10 @@ class Runner(object):
         # Now prepare the stages of the spin-up
         self.configuration_log = {}
         self._prepare_stages()
+
+        # Prepare the job dispatcher and use to dispatch each stage
+        self.dispatcher = hpcpy.ClientFactory.get_client()
+        self.submit_stages()
 
     def _prepare_config(self):
         """Prepare the configuration of the runner. This follows
@@ -46,27 +51,31 @@ class Runner(object):
 
         self.configuration_log["queued_stages"] = build_cable_stages(stage_config)
 
-def build_client(config):
-    """Build the client."""
+        # Write the configuration log to disk, to be read by the dispatch
+        # for each stage
+        with open("configuration_log.yaml", 'w') as conf_log_f:
+            yaml.dump(configuration_log, conf_log_f)
 
-    # We hook into hpcpy to assist in building the submitter
-    client = hpcpy.ClientFactory.get_client()
+    def _submit_stages():
+        """Use the client to submit the set of jobs for the configuration."""
 
+        # Write the basic script to file, for clarity
+        with open("submission_template.sh", 'w') as script_f:
+            script_f.write(templates.BASE_SCRIPT)
 
-def build_new_configuration_log(stage_config):
-    """Build a new configuration log."""
+        # Build the set of directives not included as keywords
+        directives = []
+        directives.append(f"-l mem={config['mem']:s}")
+        directives.append(f"-l ncpus={config['ncpus']:d}")
 
-    cable_stages = prepare_configuration(stage_config)
+        # Initialise the previous job ID for job dependency
+        prev_id = None
+        for stage in self.configuration_log["queued_stages"]:
+            prev_id = self.dispatcher.submit("submission_template.sh",
+                    render = True,
+                    depends_on = prev_id,
+                    queue = config["queue"],
+                    walltime = config["walltime"],
+                    storage = config["storage"],
+                    directives = directives)
 
-    configuration_log["queued_stages"] = cable_stages
-    configuration_log["current_stage"] = ""
-    configuration_log["completed_stages"] = []
-
-    return configuration_log
-
-def prepare_configuration(stage_config):
-    """Read the stage config to prepare the configuration."""
-
-
-    # Finish handling of single step stage
-    return cable_stages
