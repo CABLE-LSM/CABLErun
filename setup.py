@@ -9,6 +9,6 @@ setup(
     description = 'a test package',
     author = 'me',
     entry_points = {
-        'console_scripts': ['cablerun=cablerun.cli:cli'],
+        'console_scripts': ['cablerun=cablerun.cli:run'],
     }
 )

@@ -4,7 +4,7 @@
 import cablerun
 
 def run():
-    runner = cablerun.Runner()
+    runner = cablerun.run.Runner()
 
 def dispatch():
     cablerun.dispatch()

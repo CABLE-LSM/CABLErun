@@ -2,8 +2,15 @@
 # Last Modified: Thu 25 Jul 2024 14:48:13
 
 import os
-from .config import apply_defaults, build_cable_stages
-import .templates as templates
+import yaml
+from hpcpy.client import ClientFactory
+
+from cablerun.config import apply_defaults, build_cable_stages
+import cablerun.templates as templates
+
+def run():
+    runner = Runner()
+    runner.submit_configuration()
 
 class Runner(object):
 
@@ -19,9 +26,10 @@ class Runner(object):
         self.configuration_log = {}
         self._prepare_stages()
 
+    def submit_configuration(self):
         # Prepare the job dispatcher and use to dispatch each stage
-        self.dispatcher = hpcpy.ClientFactory.get_client()
-        self.submit_stages()
+        self.dispatcher = ClientFactory.get_client()
+        self._submit_stages()
 
     def _prepare_config(self):
         """Prepare the configuration of the runner. This follows
@@ -33,7 +41,7 @@ class Runner(object):
 
         apply_defaults(self.config, user_config)
 
-    def _prepare_stages():
+    def _prepare_stages(self):
         """Prepare the stages in the CABLE configuration."""
 
         # And add the stage config file, which we use for configuring CABLE
@@ -44,9 +52,9 @@ class Runner(object):
         # Build the configuration log, which we use to track the status of
         # the configuration
         self.configuration_log = {
-                "queued_stages" = [],
-                "current_stage" = "",
-                "completed_stages" = []
+                "queued_stages": [],
+                "current_stage": "",
+                "completed_stages": []
                 }
 
         self.configuration_log["queued_stages"] = build_cable_stages(stage_config)
@@ -54,9 +62,9 @@ class Runner(object):
         # Write the configuration log to disk, to be read by the dispatch
         # for each stage
         with open("configuration_log.yaml", 'w') as conf_log_f:
-            yaml.dump(configuration_log, conf_log_f)
+            yaml.dump(self.configuration_log, conf_log_f)
 
-    def _submit_stages():
+    def _submit_stages(self):
         """Use the client to submit the set of jobs for the configuration."""
 
         # Write the basic script to file, for clarity
@@ -65,8 +73,8 @@ class Runner(object):
 
         # Build the set of directives not included as keywords
         directives = []
-        directives.append(f"-l mem={config['mem']:s}")
-        directives.append(f"-l ncpus={config['ncpus']:d}")
+        directives.append(f"-l mem={self.config['mem']:s}")
+        directives.append(f"-l ncpus={self.config['ncpus']:d}")
 
         # Initialise the previous job ID for job dependency
         prev_id = None
@@ -74,8 +82,9 @@ class Runner(object):
             prev_id = self.dispatcher.submit("submission_template.sh",
                     render = True,
                     depends_on = prev_id,
-                    queue = config["queue"],
-                    walltime = config["walltime"],
-                    storage = config["storage"],
-                    directives = directives)
+                    queue = self.config["queue"],
+                    walltime = self.config["walltime"],
+                    storage = self.config["storage"],
+                    directives = directives,
+                    stagename = stage)
 

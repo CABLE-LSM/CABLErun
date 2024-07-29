@@ -1,6 +1,8 @@
 # Author: Lachlan Whyborn
 # Last Modified: Thu 25 Jul 2024 01:00:37 PM AEST
 
+import os
+
 config_defaults = {
         "queue": "normal",
         "project": os.environ.get("PROJECT", None),
